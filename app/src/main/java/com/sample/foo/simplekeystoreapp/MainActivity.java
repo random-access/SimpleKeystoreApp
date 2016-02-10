@@ -59,7 +59,9 @@ public class MainActivity extends AppCompatActivity {
             keyStore = KeyStore.getInstance("AndroidKeyStore");
             keyStore.load(null);
         }
-        catch(Exception e) {}
+        catch(Exception e) {
+            Log.d(TAG, e.getMessage());
+        }
         refreshKeys();
 
         setContentView(R.layout.activity_main);
@@ -191,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
 
             byte[] bytes = new byte[values.size()];
             for(int i = 0; i < bytes.length; i++) {
-                bytes[i] = values.get(i).byteValue();
+                bytes[i] = values.get(i);
             }
 
             String finalText = new String(bytes, 0, bytes.length, "UTF-8");
@@ -216,8 +218,11 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            View itemView = LayoutInflater.from(parent.getContext()).
-                    inflate(R.layout.list_item, parent, false);
+            View itemView = convertView;
+            if (itemView == null) {
+                itemView = LayoutInflater.from(parent.getContext()).
+                        inflate(R.layout.list_item, parent, false);
+            };
 
             final TextView keyAlias = (TextView) itemView.findViewById(R.id.keyAlias);
             keyAlias.setText(keyAliases.get(position));
