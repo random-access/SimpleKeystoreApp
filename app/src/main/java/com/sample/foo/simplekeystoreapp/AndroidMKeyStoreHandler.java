@@ -5,6 +5,7 @@ import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
+import android.util.Log;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,7 +23,7 @@ import javax.crypto.CipherOutputStream;
 
 public class AndroidMKeyStoreHandler implements IKeyStoreHandler {
 
-    static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
+    static final String CIPHER_TYPE = "RSA/ECB/OAEPWithSHA-512AndMGF1Padding";
 
     private static final String KEY_STORE_PROVIDER = "AndroidKeyStore";
 
@@ -51,7 +52,7 @@ public class AndroidMKeyStoreHandler implements IKeyStoreHandler {
                             alias,
                             KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
                             .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
+                            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
                             .build());
             keyPairGenerator.generateKeyPair();
         } catch (Exception e) {
@@ -109,6 +110,7 @@ public class AndroidMKeyStoreHandler implements IKeyStoreHandler {
             cipherOutputStream.close();
 
             byte[] vals = outputStream.toByteArray();
+
             return Base64.encodeToString(vals, Base64.DEFAULT);
         } catch (Exception e) {
             throw new KeyStoreHandlerException(e.getMessage());

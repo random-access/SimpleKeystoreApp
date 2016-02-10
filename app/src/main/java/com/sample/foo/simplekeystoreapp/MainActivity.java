@@ -158,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             PrivateKey privateKey = keyStoreHandler.getPrivateKey(alias);
 
-            String cipherText = encryptedText.getText().toString();
+            String cipherText = startText.getText().toString();
 
             decryptedText.setText(keyStoreHandler.decryptString(cipherText, privateKey));
 
