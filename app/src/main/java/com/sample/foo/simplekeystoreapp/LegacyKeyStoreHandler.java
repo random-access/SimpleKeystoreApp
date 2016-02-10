@@ -29,7 +29,7 @@ public class LegacyKeyStoreHandler implements IKeyStoreHandler {
     private static final String KEY_STORE_PROVIDER = "AndroidKeyStore";
     static final String CIPHER_PROVIDER = "AndroidOpenSSL";
 
-    private static final String X509_CONTENT = "CN=Self-Signed, O=random-access";
+    private static final String X509_CONTENT = "CN=Sample Name, O=Android Authority";
 
     private static final String CHARSET = "UTF-8";
 

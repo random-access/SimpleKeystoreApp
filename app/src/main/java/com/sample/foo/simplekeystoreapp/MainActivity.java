@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 keyStoreHandler = new LegacyKeyStoreHandler(this);
             }
         }
-        catch(Exception e) {
+        catch(KeyStoreHandlerException e) {
             Log.d(TAG, e.getMessage());
         }
         refreshKeys();
@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
             encryptedText.setText(keyStoreHandler.encryptString(initialText, publicKey));
 
-        } catch (Exception e) {
+        } catch (KeyStoreHandlerException e) {
             Toast.makeText(this, "Exception " + e.getMessage() + " occured", Toast.LENGTH_LONG).show();
             Log.e(TAG, Log.getStackTraceString(e));
         }
