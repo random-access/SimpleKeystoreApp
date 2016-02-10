@@ -2,6 +2,7 @@ package com.sample.foo.simplekeystoreapp;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -25,6 +26,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
@@ -40,24 +43,24 @@ import javax.security.auth.x500.X500Principal;
 
 public class MainActivity extends AppCompatActivity {
 
-    static final String TAG = "SimpleKeystoreApp";
-    static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
-    static final String CIPHER_PROVIDER = "AndroidOpenSSL";
+    private static final String TAG = "SimpleKeystoreApp";
 
-    EditText aliasText;
-    EditText startText, decryptedText, encryptedText;
-    List<String> keyAliases;
-    ListView listView;
-    KeyRecyclerAdapter listAdapter;
+    private EditText aliasText;
+    private EditText startText, decryptedText, encryptedText;
+    private List<String> keyAliases;
+    private KeyRecyclerAdapter listAdapter;
 
-    KeyStore keyStore;
+    private IKeyStoreHandler keyStoreHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         try {
-            keyStore = KeyStore.getInstance("AndroidKeyStore");
-            keyStore.load(null);
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                keyStoreHandler = new AndroidMKeyStoreHandler();
+            } else {
+                keyStoreHandler = new LegacyKeyStoreHandler(this);
+            }
         }
         catch(Exception e) {
             Log.d(TAG, e.getMessage());
@@ -72,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         decryptedText = (EditText) listHeader.findViewById(R.id.decryptedText);
         encryptedText = (EditText) listHeader.findViewById(R.id.encryptedText);
 
-        listView = (ListView) findViewById(R.id.listView);
+        ListView listView = (ListView) findViewById(R.id.listView);
         listView.addHeaderView(listHeader);
         listAdapter = new KeyRecyclerAdapter(this, R.id.keyAlias);
         listView.setAdapter(listAdapter);
@@ -81,12 +84,14 @@ public class MainActivity extends AppCompatActivity {
     private void refreshKeys() {
         keyAliases = new ArrayList<>();
         try {
-            Enumeration<String> aliases = keyStore.aliases();
+            Enumeration<String> aliases = keyStoreHandler.getKeyAliases();
             while (aliases.hasMoreElements()) {
                 keyAliases.add(aliases.nextElement());
             }
         }
-        catch(Exception e) {}
+        catch(KeyStoreHandlerException e) {
+            Log.d(TAG, e.getMessage());
+        }
 
         if(listAdapter != null)
             listAdapter.notifyDataSetChanged();
@@ -96,23 +101,8 @@ public class MainActivity extends AppCompatActivity {
         String alias = aliasText.getText().toString();
         try {
             // Create new key if needed
-            if (!keyStore.containsAlias(alias)) {
-                Calendar start = Calendar.getInstance();
-                Calendar end = Calendar.getInstance();
-                end.add(Calendar.YEAR, 1);
-                KeyPairGeneratorSpec spec = new KeyPairGeneratorSpec.Builder(this)
-                        .setAlias(alias)
-                        .setSubject(new X500Principal("CN=Sample Name, O=Android Authority"))
-                        .setSerialNumber(BigInteger.ONE)
-                        .setStartDate(start.getTime())
-                        .setEndDate(end.getTime())
-                        .build();
-                KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", "AndroidKeyStore");
-                generator.initialize(spec);
-
-                KeyPair keyPair = generator.generateKeyPair();
-            }
-        } catch (Exception e) {
+            keyStoreHandler.createKeyPair(alias);
+        } catch (KeyStoreHandlerException e) {
             Toast.makeText(this, "Exception " + e.getMessage() + " occured", Toast.LENGTH_LONG).show();
             Log.e(TAG, Log.getStackTraceString(e));
         }
@@ -126,9 +116,9 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         try {
-                            keyStore.deleteEntry(alias);
+                            keyStoreHandler.deleteKeyPair(alias);
                             refreshKeys();
-                        } catch (KeyStoreException e) {
+                        } catch (KeyStoreHandlerException e) {
                             Toast.makeText(MainActivity.this,
                                     "Exception " + e.getMessage() + " occured",
                                     Toast.LENGTH_LONG).show();
@@ -148,8 +138,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void encryptString(String alias) {
         try {
-            KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry)keyStore.getEntry(alias, null);
-            RSAPublicKey publicKey = (RSAPublicKey) privateKeyEntry.getCertificate().getPublicKey();
+            PublicKey publicKey = keyStoreHandler.getPublicKey(alias);
 
             String initialText = startText.getText().toString();
             if(initialText.isEmpty()) {
@@ -157,17 +146,8 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            Cipher inCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
-            inCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+            encryptedText.setText(keyStoreHandler.encryptString(initialText, publicKey));
 
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            CipherOutputStream cipherOutputStream = new CipherOutputStream(
-                    outputStream, inCipher);
-            cipherOutputStream.write(initialText.getBytes("UTF-8"));
-            cipherOutputStream.close();
-
-            byte [] vals = outputStream.toByteArray();
-            encryptedText.setText(Base64.encodeToString(vals, Base64.DEFAULT));
         } catch (Exception e) {
             Toast.makeText(this, "Exception " + e.getMessage() + " occured", Toast.LENGTH_LONG).show();
             Log.e(TAG, Log.getStackTraceString(e));
@@ -176,28 +156,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void decryptString(String alias) {
         try {
-            KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry)keyStore.getEntry(alias, null);
-            RSAPrivateKey privateKey = (RSAPrivateKey) privateKeyEntry.getPrivateKey();
-
-            Cipher output = Cipher.getInstance("RSA/ECB/PKCS1Padding", "AndroidOpenSSL");
-            output.init(Cipher.DECRYPT_MODE, privateKey);
+            PrivateKey privateKey = keyStoreHandler.getPrivateKey(alias);
 
             String cipherText = encryptedText.getText().toString();
-            CipherInputStream cipherInputStream = new CipherInputStream(
-                    new ByteArrayInputStream(Base64.decode(cipherText, Base64.DEFAULT)), output);
-            ArrayList<Byte> values = new ArrayList<>();
-            int nextByte;
-            while ((nextByte = cipherInputStream.read()) != -1) {
-                values.add((byte)nextByte);
-            }
 
-            byte[] bytes = new byte[values.size()];
-            for(int i = 0; i < bytes.length; i++) {
-                bytes[i] = values.get(i);
-            }
-
-            String finalText = new String(bytes, 0, bytes.length, "UTF-8");
-            decryptedText.setText(finalText);
+            decryptedText.setText(keyStoreHandler.decryptString(cipherText, privateKey));
 
         } catch (Exception e) {
             Toast.makeText(this, "Exception " + e.getMessage() + " occured", Toast.LENGTH_LONG).show();
