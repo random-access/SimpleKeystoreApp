@@ -27,13 +27,16 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Set;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -79,6 +82,15 @@ public class MainActivity extends AppCompatActivity {
         listView.addHeaderView(listHeader);
         listAdapter = new KeyRecyclerAdapter(this, R.id.keyAlias);
         listView.setAdapter(listAdapter);
+
+        Provider[] providers = Security.getProviders();
+        for (Provider p : providers) {
+            Log.d(TAG, "provider: " + p.getName());
+            Set<Provider.Service> services = p.getServices();
+            for (Provider.Service s : services) {
+                Log.d(TAG, "--> algorithm: " + s.getAlgorithm());
+            }
+        }
     }
 
     private void refreshKeys() {
@@ -109,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         refreshKeys();
     }
 
-    public void deleteKey(final String alias) {
+    private void deleteKey(final String alias) {
         AlertDialog alertDialog =new AlertDialog.Builder(this)
                 .setTitle("Delete Key")
                 .setMessage("Do you want to delete the key \"" + alias + "\" from the keystore?")
@@ -136,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
-    public void encryptString(String alias) {
+    private void encryptString(String alias) {
         try {
             PublicKey publicKey = keyStoreHandler.getPublicKey(alias);
 
@@ -154,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void decryptString(String alias) {
+    private void decryptString(String alias) {
         try {
             PrivateKey privateKey = keyStoreHandler.getPrivateKey(alias);
 
@@ -185,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
             if (itemView == null) {
                 itemView = LayoutInflater.from(parent.getContext()).
                         inflate(R.layout.list_item, parent, false);
-            };
+            }
 
             final TextView keyAlias = (TextView) itemView.findViewById(R.id.keyAlias);
             keyAlias.setText(keyAliases.get(position));

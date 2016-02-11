@@ -23,11 +23,7 @@ import javax.crypto.CipherOutputStream;
 
 public class AndroidMKeyStoreHandler implements IKeyStoreHandler {
 
-    static final String CIPHER_TYPE = "RSA/ECB/OAEPWithSHA-512AndMGF1Padding";
-
-    private static final String KEY_STORE_PROVIDER = "AndroidKeyStore";
-
-    private static final String CHARSET = "UTF-8";
+    private static final String CIPHER_TYPE = "RSA/ECB/OAEPWithSHA-512AndMGF1Padding";
 
     private KeyStore keyStore;
 
@@ -51,7 +47,7 @@ public class AndroidMKeyStoreHandler implements IKeyStoreHandler {
                     new KeyGenParameterSpec.Builder(
                             alias,
                             KeyProperties.PURPOSE_DECRYPT | KeyProperties.PURPOSE_ENCRYPT)
-                            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+                            .setDigests(KeyProperties.DIGEST_SHA512)
                             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
                             .build());
             keyPairGenerator.generateKeyPair();

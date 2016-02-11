@@ -24,14 +24,9 @@ import javax.security.auth.x500.X500Principal;
 public class LegacyKeyStoreHandler implements IKeyStoreHandler {
 
     private static final String ALGORITHM = "RSA";
-    static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
-
-    private static final String KEY_STORE_PROVIDER = "AndroidKeyStore";
-    static final String CIPHER_PROVIDER = "AndroidOpenSSL";
-
+    private static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
     private static final String X509_CONTENT = "CN=Sample Name, O=Android Authority";
-
-    private static final String CHARSET = "UTF-8";
+    private static final String CIPHER_PROVIDER = "AndroidOpenSSL";
 
     private Context context;
     private KeyStore keyStore;

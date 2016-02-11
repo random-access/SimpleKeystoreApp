@@ -6,6 +6,9 @@ import java.util.Enumeration;
 
 public interface IKeyStoreHandler {
 
+    String KEY_STORE_PROVIDER = "AndroidKeyStore";
+    String CHARSET = "UTF-8";
+
     /**
      * Creates a new key pair (public key and private key)
      * @param alias String identifying a key pair.
